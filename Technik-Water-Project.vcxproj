@@ -108,7 +108,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Compute.h" />
+    <ClInclude Include="Plant.h" />
     <ClInclude Include="__vm\.Technik-Water-Project.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Compute.cpp" />
+    <ClCompile Include="Plant.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
