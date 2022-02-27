@@ -4,7 +4,8 @@
  Author:	Vitas Ruhland
 */
 
-//local dependencies
+#include <arduino-timer.h>
+
 #include "Compute.h"
 #include "Plant.h"
 #include "Plant.h"
@@ -26,6 +27,13 @@ constexpr uint8_t TIMESON = 3; //unit in 1/d
 //main objects for system
 Plant plant[plantArrSize];
 Compute cmp(1);
+Timer<2, millis> timer;
+
+
+//refresh timer imortant
+int time = int(millis());
+int timeToWater = cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON);
+int timeToWait = time + cmp.compTimeOff(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON);
 
 
 void setup()
@@ -49,6 +57,8 @@ void setup()
 }
 
 
+
+
 int getRotaryIND()
 {
 	//add code for rot-enc pos
@@ -56,9 +66,27 @@ int getRotaryIND()
 }
 
 
+void getStatus() 
+{
+	
+}
+
+bool mainCompute()
+{
+	if (cmp.compTimer(time, timeToWait)) 
+	{
+		time = millis();
+		return true;
+	}
+	else 
+	{
+		return false;
+	}
+}
+
 void loop()
 {
-	if (ONSTARTWATER) {
+	/*if (ONSTARTWATER) {
 		digitalWrite(RELAIS_PIN, HIGH);
 		delay(cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON));
 		digitalWrite(RELAIS_PIN, LOW);
@@ -70,5 +98,12 @@ void loop()
 		digitalWrite(RELAIS_PIN, HIGH);
 		delay(cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON));
 		digitalWrite(RELAIS_PIN, LOW);
+	}*/
+
+	getStatus();
+	
+	if (mainCompute())
+	{
+		digitalWrite(RELAIS_PIN, HIGH);
 	}
 }
