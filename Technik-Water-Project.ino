@@ -6,7 +6,7 @@
 
 #include <arduino-timer.h>
 
-#include "Compute.h"
+//#include "Compute.h"
 #include "Plant.h"
 #include "Plant.h"
 #include "Compute.h"
@@ -22,23 +22,56 @@ static constexpr uint8_t plantArrSize = 5;// check if used
 
 constexpr uint8_t PUMPWATEROUTPUT = 50; //unit in ml/min
 constexpr uint8_t TIMESON = 3; //unit in 1/d
+void* voidptr;
+int timeToWater;
+int timeToWait;
+int RotaryState;
 
 
 //main objects for system
 Plant plant[plantArrSize];
-Compute cmp(1);
-Timer<2, millis> timer;
+//Compute cmp(1);
+auto timer = timer_create_default();
 
+
+int compTimeOn(int plntWaterUsage, int pumpWaterOutput, int timesOn)
+{
+	return int(plntWaterUsage / (pumpWaterOutput * timesOn) * 60000);
+}
+
+int compTimeOff(int plntWaterUsage, int pumpWaterOutput, int timesOn)
+{
+	return int((1440 - (compTimeOn(plntWaterUsage, pumpWaterOutput, timesOn) * timesOn)) * 60000);
+}
 
 //refresh timer imortant
-int time = int(millis());
-int timeToWater = cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON);
-int timeToWait = time + cmp.compTimeOff(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON);
+
+
+bool toggleRelay(void *) 
+{
+	digitalWrite(RELAIS_PIN, !digitalRead(RELAIS_PIN));
+	return true;
+}
+
+
+bool relayhandler(void *)
+{
+	toggleRelay(voidptr);
+	timer.in(timeToWater, toggleRelay);
+	return true;
+}
 
 
 void setup()
 {
 	Serial.begin(9600);
+
+	Serial.println("Initialize time constants");
+
+	int timeToWater = compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON);
+	int timeToWait = int((1440 - (compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON) * TIMESON)) * 60000);
+
+
 
 	Serial.println("Initializing plant configuration");
 	uint8_t waterUsageTemp = 100;
@@ -49,11 +82,19 @@ void setup()
 	}
 	Serial.println("Plant initialized successfully");
 
+
+
 	//set all pins for modules
 	Serial.println("Initializing PIN allocation");
 	pinMode(RELAIS_PIN, OUTPUT);
 	pinMode(WATERSENSOR_PIN, INPUT);
 	Serial.println("Everything successfully initialized");
+
+
+
+	Serial.println("Initializing timer");
+	timer.every(timeToWait + timeToWater, relayhandler);
+	timer.every(timeToWater, relayhandler);
 }
 
 
@@ -71,7 +112,7 @@ void getStatus()
 	
 }
 
-bool mainCompute()
+/*bool mainCompute()
 {
 	if (cmp.compTimer(time, timeToWait)) 
 	{
@@ -82,28 +123,13 @@ bool mainCompute()
 	{
 		return false;
 	}
-}
+}*/
 
 void loop()
 {
-	/*if (ONSTARTWATER) {
-		digitalWrite(RELAIS_PIN, HIGH);
-		delay(cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON));
-		digitalWrite(RELAIS_PIN, LOW);
-		ONSTARTWATER = false;
-	}
-	else
-	{
-		delay(cmp.compTimeOff(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON));
-		digitalWrite(RELAIS_PIN, HIGH);
-		delay(cmp.compTimeOn(plant[getRotaryIND()].getWaterUsage(), PUMPWATEROUTPUT, TIMESON));
-		digitalWrite(RELAIS_PIN, LOW);
-	}*/
-
-	getStatus();
 	
-	if (mainCompute())
-	{
-		digitalWrite(RELAIS_PIN, HIGH);
-	}
+
+	//getStatus();
+	
+	timer.tick();
 }
