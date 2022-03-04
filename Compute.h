@@ -21,4 +21,5 @@ public:
 	Compute(int placeholder);
 	int compTimeOn(int plntWaterUsage, int pumpWaterOutput, int timesOn);
 	int compTimeOff(int plntWaterUsage, int pumpWaterOutput, int timesOn);
+	bool compTimer(int time, int timeToWait);
 };
